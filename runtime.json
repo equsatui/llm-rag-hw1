@@ -1,0 +1,31 @@
+{
+  "model": "Qwen/Qwen3.5-4B",
+  "model_revision": "32f3e8ecf65426fc3306969496342d504bfa13f3",
+  "local_model": "mlx-community/Qwen3.5-4B-MLX-4bit",
+  "local_revision": "32f3e8ecf65426fc3306969496342d504bfa13f3",
+  "quantization": "MLX 4-bit, group size 64",
+  "thinking": false,
+  "generation": {
+    "max_tokens": 1536,
+    "temperature": 0.7,
+    "top_p": 0.8,
+    "top_k": 20,
+    "min_p": 0.0,
+    "presence_penalty": 1.5,
+    "repetition_penalty": 1.0,
+    "seed": 42,
+    "presence_context_size": 20
+  },
+  "timeout_seconds": 300,
+  "source": "Собственная конфигурация разработки: runtime.json не был выдан; одинаковые параметры во всех опытах.",
+  "limits": {
+    "llm_calls": 4,
+    "input_tokens": 16384,
+    "output_tokens": 4096,
+    "request_tokens": 8192
+  },
+  "retrieval_device": "cpu",
+  "generation_device": "Apple M4 Pro GPU via MLX",
+  "prompt_budget_tokenizer_model": "Qwen/Qwen3.5-4B",
+  "prompt_budget_tokenizer_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a"
+}
