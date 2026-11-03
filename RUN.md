@@ -1,6 +1,6 @@
 # Запуск
 
-Команды выполняются из корня репозитория. Нужен Python 3.11.
+Команды выполняются из корня репозитория. Нужен Python 3.11. Ссылки на сохранённые результаты — в [README.md](README.md#эксперименты-и-результаты).
 
 ## Внешний сервер модели
 
@@ -46,7 +46,7 @@ PDF и токенизатор скачиваются до предсказани
 .venv/bin/python evaluate.py --questions dev_questions.jsonl --gold dev_gold.jsonl --answers answers.jsonl --trace trace.jsonl --corpus data/corpus.jsonl
 ```
 
-Сохранённый итоговый прогон проверяется отдельно:
+## Проверка сохранённого прогона
 
 ```bash
 .venv/bin/python evaluate.py --questions dev_questions.jsonl --gold dev_gold.jsonl --answers dev_answers.jsonl --trace dev_trace.jsonl --corpus data/corpus.jsonl --review rationale_review.json
@@ -58,6 +58,6 @@ PDF и токенизатор скачиваются до предсказани
 .venv/bin/python run_experiments.py --index index --questions dev_questions.jsonl --gold dev_gold.jsonl --corpus data/corpus.jsonl --config config.json --output results
 ```
 
-Ответы, трассы и автоматические оценки сохраняются в `results`. Прогресс печатается после каждого вопроса. Параметры генерации одинаковы во всех пяти конфигурациях.
+Ответы, трассы и автоматические оценки сохраняются в `results`. Прогресс печатается после каждого вопроса.
 
 Сохранённые метки `rationale_review.json` привязаны к SHA256 прежних ответов. Для нового прогона обоснования нужно прочитать заново; старые метки автоматически не применяются. В опубликованной таблице учтена содержательная проверка сохранённых ответов.

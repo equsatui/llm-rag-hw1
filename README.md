@@ -2,57 +2,57 @@
 
 Ермолаев Фёдор Андреевич, М05-604б.
 
-Python 3.11. Генерация — Qwen3.5-4B через OpenAI-совместимый Chat Completions API. Поиск выполняется на CPU: BM25 и символьный TF-IDF объединяются через RRF. Простой RAG использует BM25; итоговая система добавляет символьный поиск и соседние фрагменты. На вопрос выполняется один вызов модели, без повторных попыток. Модель отдельно отмечает истинность каждого варианта, затем код собирает требуемый JSON. Синтаксические дефекты JSON исправляет готовая библиотека `json_repair`; типы, ID, ссылки и лимиты проверяются после неё.
+Ответы по учебнику Горяйнова и Половинкина с обоснованиями и ссылками на исходные блоки. Поиск на CPU: BM25 и символьный TF-IDF объединяются через RRF, к контексту добавляются соседние фрагменты. Qwen3.5-4B отвечает за один вызов через Chat Completions API.
 
-Измерения выполнены на Apple M4 Pro с 48 ГБ общей памяти: сборка индекса 0.38 с, пик RSS 175 MiB; пик выделения MLX при генерации 3.57 GiB.
+## Эксперименты и результаты
 
-## Подготовка и запуск
+На 15 открытых вопросах итоговая система выбрала правильные наборы в **10 случаях**, **Q ≈ 0.590**.
+
+| Файл | Содержание |
+|---|---|
+| [experiments.csv](experiments.csv) | Метрики пяти конфигураций: без контекста, BM25, итоговая система и две абляции |
+| [report.md](report.md) | Метод, сравнение, выводы абляций, три ошибки и ресурсы |
+| [run_experiments.py](run_experiments.py) | Код запуска всех пяти конфигураций |
+| [dev_answers.jsonl](dev_answers.jsonl) | Сохранённые ответы итоговой системы |
+| [dev_trace.jsonl](dev_trace.jsonl) | Расход токенов, время, вызовы и найденные блоки |
+
+Для остальных конфигураций опубликованы сводные метрики. Папка `results/` с ответами и журналами создаётся при повторном запуске.
+
+## Запуск
+
+Нужен Python 3.11. Команды ниже выполняются в активной среде из корня репозитория.
 
 ```bash
 python -m pip install -r requirements.txt
 python prepare_assets.py
 python prepare_corpus.py --pdf data/tfkp_2025.pdf --output data/corpus.jsonl
-python prepare_questions.py --source data/tfkp_15_qa.md --corpus data/corpus.jsonl --questions dev_questions.jsonl --gold dev_gold.jsonl
 python build_index.py --corpus data/corpus.jsonl --output index --config config.json
 ```
 
-Задайте `LLM_BASE_URL`, `LLM_MODEL`, `LLM_API_KEY` при необходимости авторизации и `SUBMISSION_ID`. Например, для локального запуска:
+Задайте `LLM_BASE_URL`, `LLM_MODEL` и `SUBMISSION_ID`; при авторизации сервера — `LLM_API_KEY`.
 
 ```bash
-export LLM_BASE_URL=http://127.0.0.1:8765/v1
-export LLM_MODEL=Qwen/Qwen3.5-4B
-export SUBMISSION_ID=ermolaev-fedor-llm-rag
 python predict.py --index index --questions dev_questions.jsonl --output answers.jsonl --trace trace.jsonl --config config.json
 ```
 
-Все зависимости и файлы токенизатора загружаются до предсказания. При ответах код обращается только к `LLM_BASE_URL`. Во время сборки индекса вызовов LLM нет. В индекс не входят вопросы и эталоны. Пути в конфигурации отсчитываются от самого `config.json`.
+[RUN.md](RUN.md) содержит настройку среды, запуск локальной Qwen на Apple Silicon Mac, подготовку вопросов, проверку ответов и команду всех экспериментов.
 
-## Локальная модель на Mac
+Модели и зависимости скачиваются до предсказания. Во время ответов сеть используется только для заданного сервера. При сборке индекса LLM не вызывается, вопросы и эталоны не индексируются.
 
-```bash
-python setup_local.py
-.venv/bin/python local_server.py
-```
+## Данные и настройки
 
-Скрипт создаёт собственную Python 3.11 среду и скачивает фиксированную MLX-квантизацию Qwen3.5-4B. Сервер слушает только `127.0.0.1:8765`, кэш между вопросами отключён. Для внешнего endpoint эти файлы и MLX не нужны. Подробные команды — в `RUN.md`.
+- [Открытые вопросы](dev_questions.jsonl) и [эталоны](dev_gold.jsonl).
+- [Восемь новых вопросов](own_questions.jsonl) и [эталоны](own_gold.jsonl), по два на категорию.
+- [config.json](config.json) — поиск и контекст; [runtime.json](runtime.json) — ревизии модели и параметры генерации.
+- [prepare_questions.py](prepare_questions.py) пересобирает вопросы из [выданного QA](data/tfkp_15_qa.md) и корпуса.
+- [rationale_review.json](rationale_review.json) — метки проверки обоснований сохранённых ответов. Для новых ответов нужна новая проверка.
 
-## Проверка и эксперименты
+Корпус, индекс, веса, окружение и большие журналы не включены. Сложные формулы PDF иногда извлекаются с ошибками.
 
-```bash
-python evaluate.py --questions dev_questions.jsonl --gold dev_gold.jsonl --answers dev_answers.jsonl --trace dev_trace.jsonl --corpus data/corpus.jsonl --review rationale_review.json
-python run_experiments.py --index index --questions dev_questions.jsonl --gold dev_gold.jsonl --corpus data/corpus.jsonl --config config.json --output results
-```
+## Ресурсы и источники
 
-В `results` сохраняются пять конфигураций и таблица `experiments.csv`: без контекста, простой RAG, итоговая система, без символьного поиска, без соседних фрагментов. Все используют одинаковые вопросы и параметры генерации. В итоговую сдачу входят `dev_answers.jsonl`, `dev_trace.jsonl`, `experiments.csv` и `report.md`.
-
-`prepare_questions.py` пересобирает открытый набор из выданного `tfkp_15_qa.md`; пример с путями приведён в `RUN.md`. Восемь собственных вопросов и их эталоны находятся в `own_questions.jsonl` и `own_gold.jsonl`.
-
-Индекс, корпус, веса, окружение, кэши и большие журналы исключены через `.gitignore`. Формулы восстанавливаются из глифов и геометрии PDF; сложные вложенные формулы могут содержать ошибки, ограничения разобраны в `report.md`.
-
-## Материалы
+Замеры: Apple M4 Pro, 48 ГБ общей памяти. Сборка индекса — 0.38 с, пик RSS — 175 MiB; пик выделения MLX при генерации — 3.57 GiB.
 
 - [Горяйнов, Половинкин. Лекции по ТФКП, 2025](https://new.mipt.ru/upload/mathematics/study/uchebniki/%D0%9B_%D0%A2%D0%A4%D0%9A%D0%9F_%D0%93%D0%BE%D1%80%D1%8F%D0%B9%D0%BD%D0%BE%D0%B2_%D0%9F%D0%BE%D0%BB%D0%BE%D0%B2%D0%B8%D0%BD%D0%BA%D0%B8%D0%BD_2025.pdf)
-- `6_RAG_Evals_MuSiQue.ipynb` из материалов курса: BM25, RRF, символьный TF-IDF, сборка контекста и сравнение конфигураций
+- Семинарский `6_RAG_Evals_MuSiQue.ipynb`: BM25, RRF, символьный TF-IDF и сборка контекста
 - [Qwen3.5-4B](https://huggingface.co/Qwen/Qwen3.5-4B), [MLX-квантизация](https://huggingface.co/mlx-community/Qwen3.5-4B-MLX-4bit), [MLX LM](https://github.com/ml-explore/mlx-lm)
-
-Смысловые метки в `rationale_review.json` относятся только к сохранённым ответам с указанными SHA256. При новом endpoint или изменении ответов нужна новая проверка обоснований.
